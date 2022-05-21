@@ -29,6 +29,7 @@ public class AddAnimalDialog extends JDialog {
     private static Animal_fields field;
     private static SelectAnimal select;
     private String name,col; // common
+    private int horSpeed,verSpeed;
 
     private double changing_field; // giraffe and elephant
     private int age,size; // turtle
@@ -77,6 +78,7 @@ public class AddAnimalDialog extends JDialog {
 
                 }
                 if(animalToAdd != null) {
+                    animalToAdd.setSpeed(horSpeed,verSpeed);
                     ZooPanel.addAnimal(animalToAdd);
                 }
             }
@@ -148,7 +150,27 @@ public class AddAnimalDialog extends JDialog {
             JOptionPane.showMessageDialog(field,"Animal "+ field.size.getText()+ " is invalid.\n"+field.size.getText() + " Set to default.","Error",JOptionPane.ERROR_MESSAGE);
             size = -1; // setting age to out of range.
         }
+        try{
+            horSpeed = Integer.parseInt(field.horizontal_f.getText());
+            if(!Animal.validSpeed(horSpeed))
+                throw new NumberFormatException();
 
+        }
+        catch(NumberFormatException e){
+            JOptionPane.showMessageDialog(field,"Animal " + field.horizontal_speed.getText() + " is invalid\n" + field.horizontal_speed.getText() + " Set to default ","Error",JOptionPane.ERROR_MESSAGE);
+            horSpeed = 1;
+        }
+        try{
+            verSpeed = Integer.parseInt(field.vertical_f.getText());
+            if(!Animal.validSpeed(verSpeed)) {
+                throw new NumberFormatException();
+            }
+        }
+        catch(NumberFormatException e){
+            JOptionPane.showMessageDialog(field,"Animal " + field.vertical_speed.getText() + " is invalid\n" + field.vertical_speed.getText() + " Set to default ","Error",JOptionPane.ERROR_MESSAGE);
+            verSpeed = 1;
+
+        }
         col = (String)field.color.getSelectedItem();
     }
 
@@ -218,8 +240,6 @@ public class AddAnimalDialog extends JDialog {
             this.add(changing_f);
             this.add(color);
             color.setBackground(Color.WHITE);
-            vertical_f.setEnabled(false);
-            horizontal_f.setEnabled(false);
         }
     }
 
@@ -277,8 +297,6 @@ public class AddAnimalDialog extends JDialog {
         @Override
         public void actionPerformed(ActionEvent e) {
             clearFields();
-            field.vertical_f.setText("1");
-            field.horizontal_f.setText("1");
             int index = animal_choice.getSelectedIndex();
             try {
                 img = ImageIO.read((new File(System.getProperty("user.dir") +"\\src\\photos\\" + animal_choice.getSelectedItem() + ".png")));
@@ -301,6 +319,8 @@ public class AddAnimalDialog extends JDialog {
             field.location_fy.setText("");
             field.color.setSelectedIndex(0);
             field.size_f.setText("");
+            field.horizontal_f.setText("");
+            field.vertical_f.setText("");
         }
 
 

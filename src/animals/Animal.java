@@ -15,7 +15,6 @@ import graphics.ZooFrame;
 import graphics.ZooPanel;
 import mobility.*;
 import mobility.Point;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -45,7 +44,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      * img2 - represents movement to left. depends on x_dir
      */
     protected Thread thread;
-    protected boolean threadSuspended;
+    protected volatile boolean threadSuspended=false;
     private String name;
     private double weight;
     private IDiet diet; // Eating appropriate food.
@@ -55,15 +54,16 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
     private final static int min_size = 50;
     private final static int max_size = 300;
     private String color;
-    private int horSpeed = 1; // ranges are 1-10
-    private int verSpeed = 1; // ranges are 1-10
-    private boolean coordChanged;
+    private int horSpeed; // ranges are 1-10
+    private int verSpeed; // ranges are 1-10
+    private volatile boolean coordChanged;
     private int x_dir = 1;
     private int y_dir = 1;
     private int eatCount;
     private ZooPanel pan;
     private BufferedImage img1, img2;
     private boolean exit = false; // use to stop animal thread
+    private volatile boolean existing_food = false; // indicator if there's food that is on animal's diet.
     protected static HashMap<String, String> color_choice = new HashMap<>() {
         {
             put("Natural", "n");
@@ -214,6 +214,20 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
         coordChanged = state;
     }
 
+    public boolean isThreadSuspended() {
+        return threadSuspended;
+    }
+
+    @Override
+    public void setSuspended() {
+        this.threadSuspended = true;
+    }
+
+    @Override
+    public void setResumed() {
+        this.threadSuspended = false;
+    }
+
 
     /**
      * abstract method - makes sound.
@@ -332,8 +346,8 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      */
     public void drawObject(Graphics g) {
         Graphics2D gr = (Graphics2D) g;
-        int x_location = (this.getLocation().getX() + size > 800) ? (800 - size) : Math.abs(this.getLocation().getX() - size / 2);
-        int y_location = (this.getLocation().getY() + size > 600) ? (600 - size) : Math.abs(this.getLocation().getY() - size / 10);
+        int x_location = (this.getLocation().getX() + size/2 >= 800) ? (800 - size/2) : Math.abs(this.getLocation().getX());
+        int y_location = (this.getLocation().getY() + size >= 600) ? (600 - size) : Math.abs(this.getLocation().getY());
         if (x_dir == 1)
             gr.drawImage(img1, x_location, y_location, size / 2, size, pan);
         else
@@ -385,39 +399,92 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
         this.exit = b;
     }
 
+    /**
+     * validSpeed - checks if given speed is in range of 1 to 10, if its in range returns true, else false
+     *
+     * @param speed
+     * @return boolean
+     * */
+    public static boolean validSpeed(int speed){
+        if(speed <= 0 || speed >10)
+            return false;
+        return true;
+    }
+
+    public void setSpeed(int horSpeed,int verSpeed){
+        this.horSpeed = horSpeed;
+        this.verSpeed = verSpeed;
+    }
+
+
+    public void setExistingFood(boolean state){
+        existing_food = state;
+    }
+
     @Override
     public void run() {
-        this.threadSuspended = false;
         while (!exit) {
-            if(threadSuspended == true) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            if (threadSuspended == true) {
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
             int x = getLocation().getX();
-            int y =getLocation().getY();
+            int y = getLocation().getY();
 
-            if (x + horSpeed * x_dir > 800)
-                this.x_dir = -1;
-            else if (x + horSpeed * x_dir < 0)
-                this.x_dir = 1;
+            if (existing_food) {
+                if(Math.abs(400-x)<horSpeed) // if the animal horizontal distance from food is smaller than the next step
+                     x = 400 -(horSpeed * x_dir); // next x will be 300
+                else if (x > 400) {
+                    if (x > 800 - size / 2)
+                        x = 800 - size/2;
+                    this.x_dir = -1;
+                }
+                else if(x < 400)
+                    this.x_dir = 1;
 
-            if (y + verSpeed * y_dir > 600)
-                this.y_dir = -1;
-            else if (y + verSpeed * y_dir < 0)
-                this.y_dir = 1;
+                if(Math.abs(300-y)<verSpeed) // if the animal vertical distance from food is smaller than the next step
+                    y = 300 -(verSpeed * y_dir); // next y will be 300
+                else if (y  > 300) {
+                    if (y > 600-size)
+                        y= 600-size;
+                    this.y_dir = -1;
+                }
+                else if (y < 300)
+                    this.y_dir = 1; 
+            }
 
-            synchronized (this) {
-                this.setLocation(new Point(x + horSpeed * x_dir, y + verSpeed * y_dir));
-                coordChanged = true;
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            else {
+                if (x +(x_dir * horSpeed) +(size/2) > 800) {
+                    x = 800-(size/2);
+                    this.x_dir = -1;
+                }
+                else if (x +x_dir * horSpeed< 0 )  {
+                    this.x_dir = 1;
+                }
+
+                if (y +y_dir * verSpeed+size > 600) {
+                    y = 600-size;
+                    this.y_dir = -1;
+                }
+                else if (y +y_dir * verSpeed< 0){
+                    this.y_dir = 1;
                 }
             }
+                synchronized (this) {
+                    this.setLocation(new Point(x + horSpeed * x_dir, y + verSpeed * y_dir));
+                    coordChanged = true;
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
         }
     }
 
