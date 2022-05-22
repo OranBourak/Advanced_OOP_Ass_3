@@ -116,23 +116,33 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      */
     protected boolean setWeight(double weight) {
         if (weight > 0) {
-            this.weight = weight;
+            double weightFactor = getWeightFactor();
+            if(min_size*weightFactor > weight)
+                 this.weight = min_size*weightFactor;
+            else if (max_size*weightFactor<weight)
+                this.weight = max_size*weightFactor;
+            else
+                this.weight = weight;
             return true;
         }
-        System.out.println("I got here ");
         return false;
     }
 
     /**
      * check about colors
      *
-     * @param col color recieved
+     * @param col color received
      * @return true if color is set, false otherwise.
      */
     public boolean setColor(String col) {
         color = col;
         return true;
     }
+
+    /**
+     * Set new size for animals will animal movements or eating
+     */
+    public abstract void setNewSize();
 
     /**
      * getWeight - returns weight of the animal, uses MessageUtility.
@@ -167,6 +177,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      *
      * @return String type - name.
      */
+    @Override
     public String getAnimalName() {
         return this.name;
     }
@@ -174,6 +185,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
     /**
      * eatInc - increases animals eat count by 1
      */
+    @Override
     public void eatInc() {
         eatCount += 1;
     }
@@ -183,6 +195,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      *
      * @return int type
      */
+    @Override
     public int getSize() {
         return size;
     }
@@ -192,6 +205,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      *
      * @return int type
      */
+    @Override
     public int getEatCount() {
         return eatCount;
     }
@@ -201,6 +215,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      *
      * @return animal coordChanged
      */
+    @Override
     public boolean getChanges() {
         return coordChanged;
     }
@@ -210,12 +225,9 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
      *
      * @param state
      */
+    @Override
     public synchronized void setChanges(boolean state) {
         coordChanged = state;
-    }
-
-    public boolean isThreadSuspended() {
-        return threadSuspended;
     }
 
     @Override
@@ -228,6 +240,16 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
         this.threadSuspended = false;
     }
 
+
+    public boolean isThreadSuspended() {
+        return threadSuspended;
+    }
+
+    /**
+     * GetWeightFactor
+     * @return animal weight factor
+     */
+    public abstract double getWeightFactor();
 
     /**
      * abstract method - makes sound.
@@ -277,8 +299,9 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
     public boolean eat(IEdible food) {
         double weight_gained = diet.eat(this, food);
         if (weight_gained != 0) {
-            this.eatCount++;
+            eatInc();
             this.setWeight(this.getWeight() + weight_gained);
+            this.setNewSize();
             this.makeSound();
             return true;
         }
@@ -309,6 +332,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
         double distance = super.move(other);
         double w = this.getWeight();
         this.setWeight(w - w * distance * 0.00025);
+        this.setNewSize();
         return distance;
     }
 
@@ -476,7 +500,7 @@ public abstract class Animal extends Mobile implements IEdible, IDrawable, IAnim
                 }
             }
                 synchronized (this) {
-                    this.setLocation(new Point(x + horSpeed * x_dir, y + verSpeed * y_dir));
+                    this.move(new Point(x + horSpeed * x_dir, y + verSpeed * y_dir));
                     coordChanged = true;
                     try {
                         wait();

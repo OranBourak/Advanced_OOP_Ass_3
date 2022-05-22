@@ -66,6 +66,27 @@ public class Turtle extends Chewing_animals {
         }
         return false;
     }
+    /**
+     * Set new size for animals will animal movements or eating
+     */
+    @Override
+    public void setNewSize() {
+        int new_size=(int)(getWeight()/weightFactor);
+        if(new_size < 50)
+            new_size= 50;
+        else if (new_size > 300)
+            new_size = 300;
+        setSize(new_size);
+    }
+
+    /**
+     * GetWeightFactor
+     * @return animal weight factor
+     */
+    @Override
+    public double getWeightFactor() {
+        return weightFactor;
+    }
 
     /**
      * Get Age method

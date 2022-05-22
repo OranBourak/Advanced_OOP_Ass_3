@@ -55,6 +55,27 @@ public class Giraffe extends Chewing_animals {
         this(name, new Point(50, 0), default_color, default_size, defaultLength);
     }
 
+    /**
+     * GetWeightFactor
+     * @return animal weight factor
+     */
+    @Override
+    public double getWeightFactor() {
+        return weightFactor;
+    }
+
+    /**
+     * Set new size for animals will animal movements or eating
+     */
+    @Override
+    public void setNewSize() {
+        int new_size=(int)(getWeight()/weightFactor);
+        if(new_size < 50)
+            new_size= 50;
+        else if (new_size > 300)
+            new_size = 300;
+        setSize(new_size);
+    }
 
     /**
      * setNeckLength - sets neckLength to length received if it's in bounds. (1 to 2.5 meters).

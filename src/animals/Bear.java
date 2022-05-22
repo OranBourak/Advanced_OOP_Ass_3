@@ -26,6 +26,28 @@ public class Bear extends Roaring_animals {
         this.loadImages("bea_" + color_choice.get(col) + "_");
     }
 
+    /**
+     * GetWeightFactor
+     * @return animal weight factor
+     */
+    @Override
+    public double getWeightFactor() {
+        return weightFactor;
+    }
+
+    /**
+     * Set new size for animals will animal movements or eating
+     */
+    @Override
+    public void setNewSize() {
+        int new_size=(int)(getWeight()/weightFactor);
+        if(new_size < 50)
+            new_size= 50;
+        else if (new_size > 300)
+            new_size = 300;
+        setSize(new_size);
+    }
+
     @Override
     public void roar() {
         //TODO may need to delete
